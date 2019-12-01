@@ -46,9 +46,17 @@ var config=
 //https://examples.phaser.io/assets/games/invaders/player.png
 
 var game=new Phaser.Game(config);
+
+//  OBIEKTY WYKORZYSTYWANE W GRZE
+var player;
+
+
 function preload()
 {
-
+  this.load.crossOrigin = 'anonymous';
+  this.load.setBaseURL('https://examples.phaser.io/assets/games');// teraz wystarczy pobierać grafiki tak jak poniżej, bez całego linku
+  this.load.image('player','assets/games/invaders/player.png');
+  // chaiełem wczytać playera ale kurwa późno jest ide spać XDD
 }
 function create()
 {
