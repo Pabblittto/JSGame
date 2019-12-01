@@ -257,16 +257,22 @@ function update()
   }
   back.tilePositionY -= 5;
   levelTimer++;
- /* if(levelTimer==15)
+  //no i brakuje jakiegos plynnego przejscia pomiedzy tlami mozna wsadzic jakis wybuch albo animacje zeby zaslonila ekran na czas zmiany :V
+  if(levelTimer==15)
   {
-    //chyba nie ma tu gcc a nie bardzo wiem jak zsetowac+statek jest przykrywany;
+    //chyba nie ma tu gcc a nie bardzo wiem jak zsetowac+statek jest przykrywany i nie wiem jak go narysowac drugi raz bez tworzenia nowego
+    // w trybie z debug=true widac bardzo dobrze
     back=this.add.tileSprite(0, 0, 500, 800, 'background2');
     back.setOrigin(0);
     back.setScrollFactor(1);
-
+    //te 2 rzeczy ponizej nic nie daja
+    //player.setActive(false);
+    //player.setVisible(false);
+   player=this.physics.add.sprite(player.x,player.y,'player');
+    
     //back=this.set.tileSprite(0, 0, 500, 800, 'background2');
     
-  }*/
+  }
 
   
   //strzelanko myszka potencjalnie do wywalenia
