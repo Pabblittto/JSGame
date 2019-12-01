@@ -63,6 +63,8 @@ var enemyBullets;
 var enemyBulletCount=10;
 //tlo
 var back;
+var animExplosion;
+var explosionSprite;
 var levelTimer=0;
 
 var bombs=3;
@@ -77,11 +79,19 @@ function preload()
   this.load.image('playerBullet','games/starstruck/star2.png'); //bo czemu nie
   this.load.image('enemyBullet','games/tanks/bullet.png');
   this.load.spritesheet('explosion','games/invaders/explode.png',   //to bedzie nasza animacja wybuchu wroga
-    { frameWidth: 136, frameHeight: 120 }
+    { frameWidth: 128, frameHeight: 128 }
   );
 }
 function create()
 {
+  var animationConfig = {
+    key: 'explode',
+    frames: this.anims.generateFrameNumbers('explosion'),
+    frameRate: 10,
+    yoyo: false,
+    repeat: 0
+};
+
 
   //potencjalnie polaczyc klasy w jedna i dziedziczyc. nie jestem pewien jak to zrobic. w klasie enemyBullet zmniejszyc obrazek
   var playerBullet = new Phaser.Class({
@@ -102,11 +112,12 @@ function create()
     update: function (time, delta)
     {
         this.y -= this.speed * delta;
-
+        this.setAngle(this.y%360);
         if (this.y < -50)
         {
+          
             this.setActive(false);
-            this.setVisible(false);
+            this.setVisible(false);   
         }
     }
 
@@ -168,6 +179,25 @@ enemyBullets = this.add.group({
   player.setCollideWorldBounds(true);
   //player.setOrigin(0,0);
 
+  //potencjalnie zrobic liste eksplozji i zmieniac ich polozenie)
+  animExplosion = this.anims.create(animationConfig);
+  explosionSprite = this.add.sprite(300, 300, 'explosion').setScale(0.5,0.5);
+  explosionSprite.anims.load('explode');
+  explosionSprite.setVisible(false);
+  explosionSprite.setActive(false);
+  //testowanie eksplozji na sztywno
+  this.input.keyboard.on('keydown_B', function (event) {
+    explosionSprite.setVisible(true);
+    explosionSprite.setActive(true);
+    explosionSprite.anims.restart();
+    explosionSprite.anims.play('explode');
+    explodeAt(100,100);
+    //explosionSprite.setActive(false);
+    //explosionSprite.setVisible(false);
+  
+  });
+  //explodeAt(100,100);
+//bigExplosion();
 
   //strzelanko spacja
   this.input.keyboard.on('keydown_SPACE', function (event) {
@@ -213,6 +243,17 @@ this.input.keyboard.on('keydown_Z', function (event) {
   cursors = this.input.keyboard.createCursorKeys();
 
 }
+function explodeAt(x,y)
+{
+  explosionSprite.x=x;
+  explosionSprite.y=y;
+}
+function bigExplosion()
+{
+  explosionSprite.x=player.x;
+  explosionSprite.y=player.y;
+  explosionSprite.setScale(5,5);
+}
 /*function fire() {
 
   if (game.time.now > nextFire && playerBullets.countDead() > 0)
@@ -227,6 +268,7 @@ this.input.keyboard.on('keydown_Z', function (event) {
   }
 
 }*/
+
 function update()
 {
   if(coolDown!=0)
@@ -257,23 +299,28 @@ function update()
   }
   back.tilePositionY -= 5;
   levelTimer++;
+  bigExplosion();
   //no i brakuje jakiegos plynnego przejscia pomiedzy tlami mozna wsadzic jakis wybuch albo animacje zeby zaslonila ekran na czas zmiany :V
   if(levelTimer==15)
   {
     //chyba nie ma tu gcc a nie bardzo wiem jak zsetowac+statek jest przykrywany i nie wiem jak go narysowac drugi raz bez tworzenia nowego
     // w trybie z debug=true widac bardzo dobrze
-    back=this.add.tileSprite(0, 0, 500, 800, 'background2');
+    //back=this.add.tileSprite(0, 0, 500, 800, 'background2');
     back.setOrigin(0);
     back.setScrollFactor(1);
     //te 2 rzeczy ponizej nic nie daja
     //player.setActive(false);
     //player.setVisible(false);
-   player=this.physics.add.sprite(player.x,player.y,'player');
+   //player=this.physics.add.sprite(player.x,player.y,'player');
     
     //back=this.set.tileSprite(0, 0, 500, 800, 'background2');
     
   }
-
+  if(explosionSprite.anims.getProgress()==1)
+  {
+    explosionSprite.setActive(false);
+    explosionSprite.setVisible(false);
+  }
   
   //strzelanko myszka potencjalnie do wywalenia
   /*
