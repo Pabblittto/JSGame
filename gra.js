@@ -78,6 +78,7 @@ function preload()
   this.load.image('background2','games/tanks/earth.png');
   this.load.image('playerBullet','games/starstruck/star2.png'); //bo czemu nie
   this.load.image('enemyBullet','games/tanks/bullet.png');
+  this.load.image('enemyTank1','games/tanks/tank1.png')
   this.load.spritesheet('explosion','games/invaders/explode.png',   //to bedzie nasza animacja wybuchu wroga
     { frameWidth: 128, frameHeight: 128 }
   );
@@ -89,7 +90,9 @@ function create()
     frames: this.anims.generateFrameNumbers('explosion'),
     frameRate: 10,
     yoyo: false,
+    hideOnComplete: true,
     repeat: 0
+    
 };
 
 
@@ -185,6 +188,9 @@ enemyBullets = this.add.group({
   explosionSprite.anims.load('explode');
   explosionSprite.setVisible(false);
   explosionSprite.setActive(false);
+
+  //podmiana obrazka- rozmiar hitboxa pozostaje ten sam (widoczne w debug true)
+  //player.setTexture('enemyTank1').setScale(0.5,0.5);
   //testowanie eksplozji na sztywno
   this.input.keyboard.on('keydown_B', function (event) {
     explosionSprite.setVisible(true);
@@ -303,17 +309,10 @@ function update()
   //no i brakuje jakiegos plynnego przejscia pomiedzy tlami mozna wsadzic jakis wybuch albo animacje zeby zaslonila ekran na czas zmiany :V
   if(levelTimer==15)
   {
-    //chyba nie ma tu gcc a nie bardzo wiem jak zsetowac+statek jest przykrywany i nie wiem jak go narysowac drugi raz bez tworzenia nowego
-    // w trybie z debug=true widac bardzo dobrze
-    //back=this.add.tileSprite(0, 0, 500, 800, 'background2');
-    back.setOrigin(0);
-    back.setScrollFactor(1);
-    //te 2 rzeczy ponizej nic nie daja
-    //player.setActive(false);
-    //player.setVisible(false);
-   //player=this.physics.add.sprite(player.x,player.y,'player');
+    //dzialajaca zmiana tla z zielonej na brazowa po na 15 klatce gry. mozna jakis inny waruneczek dac albo gdzies indziej.
+    back.setTexture('background2');
+    //back.setOrigin(0);
     
-    //back=this.set.tileSprite(0, 0, 500, 800, 'background2');
     
   }
   if(explosionSprite.anims.getProgress()==1)
