@@ -1,9 +1,8 @@
-import 'phaser';
 // canvas
 const canvas = document.getElementById("myCanvas")
 
 // pobieramy kontekst
-const ctx = canvas.getContext("2d")
+//const ctx = canvas.getContext("2d")
 
 const pressed = {};
 window.onkeydown = function (e) {
@@ -14,9 +13,10 @@ window.onkeyup = function (e) {
   e = e || window.event;
   delete pressed[e.key];
 }
-varconfig=
+var config=
 {
     type:Phaser.AUTO,
+    parent:canvas,
     width:300,
     height:400,
     backgroundColor:"48a",
@@ -45,16 +45,16 @@ varconfig=
 //gracz 
 //https://examples.phaser.io/assets/games/invaders/player.png
 
-vargame=newPhaser.Game(config);
-functionpreload()
+var game=new Phaser.Game(config);
+function preload()
 {
 
 }
-functioncreate()
+function create()
 {
 
 }
-functionupdate()
+function update()
 {
 
 }   
