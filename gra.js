@@ -45,6 +45,7 @@ var config = {
 
 var game=new Phaser.Game(config);
 
+
 //  OBIEKTY WYKORZYSTYWANE W GRZE
 //stateczek gracza
 var player;
@@ -72,17 +73,20 @@ var bombs=3;
 function preload()
 {
   this.load.crossOrigin = 'anonymous';
-  this.load.setBaseURL('https://examples.phaser.io/assets/');// teraz wystarczy pobierać grafiki tak jak poniżej, bez całego linku
-  this.load.image('player','games/invaders/player.png');
-  this.load.image('background','games/tanks/dark_grass.png');
-  this.load.image('background2','games/tanks/earth.png');
-  this.load.image('playerBullet','games/starstruck/star2.png'); //bo czemu nie
-  this.load.image('enemyBullet','games/tanks/bullet.png');
-  this.load.image('enemyTank1','games/tanks/tank1.png')
-  this.load.spritesheet('explosion','games/invaders/explode.png',   //to bedzie nasza animacja wybuchu wroga
+
+  this.load.image('enemyShip','https://examples.phaser.io/assets/games/invaders/invader.png');
+  //this.load.setBaseURL('https://examples.phaser.io/assets/');// teraz wystarczy pobierać grafiki tak jak poniżej, bez całego linku
+  this.load.image('player','https://examples.phaser.io/assets/games/invaders/player.png');
+  this.load.image('background','https://examples.phaser.io/assets/games/tanks/dark_grass.png');
+  this.load.image('background2','https://examples.phaser.io/assets/games/tanks/earth.png');
+  this.load.image('playerBullet','https://examples.phaser.io/assets/games/starstruck/star2.png'); //bo czemu nie
+  this.load.image('enemyBullet','https://examples.phaser.io/assets/games/tanks/bullet.png');
+  
+  this.load.spritesheet('explosion','https://examples.phaser.io/assets/games/invaders/explode.png',   //to bedzie nasza animacja wybuchu wroga
     { frameWidth: 128, frameHeight: 128 }
   );
 }
+
 function create()
 {
   var animationConfig = {
@@ -97,79 +101,119 @@ function create()
 
 
   //potencjalnie polaczyc klasy w jedna i dziedziczyc. nie jestem pewien jak to zrobic. w klasie enemyBullet zmniejszyc obrazek
-  var playerBullet = new Phaser.Class({
-    Extends: Phaser.GameObjects.Image,
+    var playerBullet = new Phaser.Class({
+      Extends: Phaser.Physics.Arcade.Sprite,
+      initialize:
+      function playerBullet (scene)
+      {
+        Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'playerBullet');
+        scene.physics.world.enable(this);
+          this.speed = Phaser.Math.GetSpeed(400, 1);
+      },
+      fire: function (x, y)
+      {
+          this.setPosition(x, y - 50);
+          this.setActive(true);
+          this.setVisible(true);
+      },
+      Hit: function(){
+        this.destroy();
+      }
+      ,
+      update: function (time, delta)
+      {
+          this.y -= this.speed * delta;
+          this.setAngle(this.y%360);
+          if (this.y < -50)
+          {
+            
+              this.setActive(false);
+              this.setVisible(false);   
+          }
+      }
+
+  });
+  var enemyBullet = new Phaser.Class({
+    Extends: Phaser.Physics.Arcade.Sprite,
     initialize:
-    function playerBullet (scene)
+    function enemyBullet (scene)
     {
-        Phaser.GameObjects.Image.call(this, scene, 0, 0, 'playerBullet');
-        this.speed = Phaser.Math.GetSpeed(400, 1);
+      Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'enemyBullet');
+      scene.physics.world.enable(this);
+        this.setScale(0.5,0.3);//zmniejszenie
+        this.setAngle(90);//rotacja
+        this.speed = Phaser.Math.GetSpeed(255, 1);
+        this.timeleft=200;
     },
     fire: function (x, y)
     {
-        this.setPosition(x, y - 50);
+        this.setPosition(x, y + 50);
         this.setActive(true);
         this.setVisible(true);
     },
-
     update: function (time, delta)
     {
-        this.y -= this.speed * delta;
-        this.setAngle(this.y%360);
-        if (this.y < -50)
+        this.y += this.speed * delta;
+        this.timeleft--;
+        
+        if (this.timeleft <=0)
         {
-          
             this.setActive(false);
-            this.setVisible(false);   
+            this.setVisible(false);
+            this.timeleft=200;
         }
     }
+  });
 
-});
-var enemyBullet = new Phaser.Class({
-  Extends: Phaser.GameObjects.Image,
-  initialize:
-  function enemyBullet (scene)
-  {
-      Phaser.GameObjects.Image.call(this, scene, 0, 0, 'enemyBullet');
-
-      this.setScale(0.5,0.3);//zmniejszenie
-      this.setAngle(90);//rotacja
-      this.speed = Phaser.Math.GetSpeed(255, 1);
-      this.timeleft=200;
-  
-  },
-  fire: function (x, y)
-  {
-      this.setPosition(x, y + 50);
+  var EnemyShip= new Phaser.Class({
+    Extends: Phaser.Physics.Arcade.Sprite,
+    initialize:
+    function EnemyShip(scene){
+      Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'enemyShip');
+      scene.physics.world.enable(this);
+      this.speed = Phaser.Math.GetSpeed(50, 1);
+    },
+    createShip: function(){
+      let randomX = Math.floor(Math.random()*(500-0+1))+0;// 500 to maksymalna liczba z zakresu-szerokośc okna gry, 0 to minimalna
+      
+      this.setPosition(randomX,0);
       this.setActive(true);
       this.setVisible(true);
-  },
-  update: function (time, delta)
-  {
-      this.y += this.speed * delta;
-      this.timeleft--;
-      
-      if (this.timeleft <=0)
-      {
-          this.setActive(false);
-          this.setVisible(false);
-          this.timeleft=200;
-      }
-  }
-});
+    },
+    GetHit: function(){
+      this.destroy();
+    }
+    ,
+    update: function (time, delta)
+    {
+        this.y += this.speed * delta;
+        
+    }
+  });
 
-playerBullets = this.add.group({
-  classType: playerBullet,
-  maxSize: fireRate+5,
-  runChildUpdate: true
-});
-enemyBullets = this.add.group({
-  classType: enemyBullet,
-  maxSize: enemyBulletCount,
-  runChildUpdate: true
-});
+  playerBullets = this.add.group({
+    classType: playerBullet,
+    maxSize: fireRate+5,
+    runChildUpdate: true
+  });
 
-   back = this.add.tileSprite(0, 0, 500, 800, 'background'); //zajebiscie sie scrolluje nawet z danym dystansem. mozna zrobic jakis ingame timer zeby zmieniac tlo po czasie
+
+  enemyBullets = this.add.group({
+    classType: enemyBullet,
+    maxSize: enemyBulletCount,
+    runChildUpdate: true
+  });
+
+  enemyCount= this.add.group({
+    maxSize:30,
+    classType: EnemyShip,
+    runChildUpdate:true
+  });
+
+
+
+
+  back = this.add.tileSprite(0, 0, 500, 800, 'background'); //zajebiscie sie scrolluje nawet z danym dystansem. mozna zrobic jakis ingame timer zeby zmieniac tlo po czasie
   back.setOrigin(0);
   back.setScrollFactor(1); //nie jestem pewien jak to dziala
   this.cameras.main.setBounds(0,0,500,800);
@@ -182,7 +226,7 @@ enemyBullets = this.add.group({
   player.setCollideWorldBounds(true);
   //player.setOrigin(0,0);
 
-  //potencjalnie zrobic liste eksplozji i zmieniac ich polozenie)
+  //potencjalnie zrobic liste eksplozji i zmieniac ich polozenie
   animExplosion = this.anims.create(animationConfig);
   explosionSprite = this.add.sprite(300, 300, 'explosion').setScale(0.5,0.5);
   explosionSprite.anims.load('explode');
@@ -203,7 +247,7 @@ enemyBullets = this.add.group({
   
   });
   //explodeAt(100,100);
-//bigExplosion();
+  //bigExplosion();
 
   //strzelanko spacja
   this.input.keyboard.on('keydown_SPACE', function (event) {
@@ -233,6 +277,8 @@ this.input.keyboard.on('keydown_Z', function (event) {
 
 });
 
+
+
   /*playerBullets = this.add.group();
   playerBullets.enableBody = true;
   playerBullets.physicsBodyType = Phaser.Physics.ARCADE;
@@ -249,6 +295,33 @@ this.input.keyboard.on('keydown_Z', function (event) {
   cursors = this.input.keyboard.createCursorKeys();
 
 }
+
+function GenerateRandomEnemies(){
+  let random= Math.floor(Math.random()*(100-0+1))+0;
+  if(random<5){     // jest około 5 procent żę w losowym miejscu pojawi się statek przeciwnika
+    let enemy = enemyCount.get();
+    if(enemy!=null)
+      enemy.createShip();
+  }
+}
+
+function hitEnemyShip(BulletBody, EnemyBody){// to konkretne obiekty, które biorą udział w kolizji
+  console.log("JEEEEB kurwa, kolizja zajebała");
+
+  BulletBody.timeleft=200;
+  let x = EnemyBody.x;
+  let y = EnemyBody.y;
+
+  EnemyBody.GetHit();
+  BulletBody.Hit();
+
+  explodeAt(x,y);
+
+ 
+
+}
+
+
 function explodeAt(x,y)
 {
   explosionSprite.x=x;
@@ -320,6 +393,10 @@ function update()
     explosionSprite.setActive(false);
     explosionSprite.setVisible(false);
   }
+
+  GenerateRandomEnemies()// uruchomienie generowania przeciwników
+
+  this.physics.collide(playerBullets,enemyCount,hitEnemyShip);// ustawienien kolizji obiektów z listy playerbullets i enemyCount- to wywołuje hitEnemyShip
   
   //strzelanko myszka potencjalnie do wywalenia
   /*
