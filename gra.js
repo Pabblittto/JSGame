@@ -46,13 +46,26 @@ var config = {
 var game=new Phaser.Game(config);
 
 //  OBIEKTY WYKORZYSTYWANE W GRZE
+//stateczek gracza
 var player;
-var bullets;
+//tablica przechowujaca pociski gracza
+var playerBullets;
+//przyciski strzalek
 var cursors;
-var spaceBar;
+//dziala przeciwnie- niski firerate=szybkie strzelanie, wysoki=wolne
 var fireRate = 10; 
 var coolDown = 0;
-var mouseCursor;
+//tablica przechowujaca wrogow na ekranie (NOT YET IMPLEMENTED)
+var enemyCount;
+//tablica przechowujaca pociski wroga
+var enemyBullets;
+//limit pociskow wroga na ekranie 
+var enemyBulletCount=10;
+//tlo
+var back;
+var levelTimer=0;
+
+var bombs=3;
 
 function preload()
 {
@@ -60,15 +73,17 @@ function preload()
   this.load.setBaseURL('https://examples.phaser.io/assets/');// teraz wystarczy pobierać grafiki tak jak poniżej, bez całego linku
   this.load.image('player','games/invaders/player.png');
   this.load.image('background','games/tanks/dark_grass.png');
+  this.load.image('background2','games/tanks/earth.png');
   this.load.image('playerBullet','games/starstruck/star2.png'); //bo czemu nie
   this.load.image('enemyBullet','games/tanks/bullet.png');
   this.load.spritesheet('explosion','games/invaders/explode.png',   //to bedzie nasza animacja wybuchu wroga
     { frameWidth: 136, frameHeight: 120 }
   );
-  // chaiełem wczytać playera ale kurwa późno jest ide spać XDD
 }
 function create()
 {
+
+  //potencjalnie polaczyc klasy w jedna i dziedziczyc. nie jestem pewien jak to zrobic. w klasie enemyBullet zmniejszyc obrazek
   var playerBullet = new Phaser.Class({
     Extends: Phaser.GameObjects.Image,
     initialize:
@@ -96,13 +111,51 @@ function create()
     }
 
 });
-bullets = this.add.group({
+var enemyBullet = new Phaser.Class({
+  Extends: Phaser.GameObjects.Image,
+  initialize:
+  function enemyBullet (scene)
+  {
+      Phaser.GameObjects.Image.call(this, scene, 0, 0, 'enemyBullet');
+
+      this.setScale(0.5,0.3);//zmniejszenie
+      this.setAngle(90);//rotacja
+      this.speed = Phaser.Math.GetSpeed(255, 1);
+      this.timeleft=200;
+  
+  },
+  fire: function (x, y)
+  {
+      this.setPosition(x, y + 50);
+      this.setActive(true);
+      this.setVisible(true);
+  },
+  update: function (time, delta)
+  {
+      this.y += this.speed * delta;
+      this.timeleft--;
+      
+      if (this.timeleft <=0)
+      {
+          this.setActive(false);
+          this.setVisible(false);
+          this.timeleft=200;
+      }
+  }
+});
+
+playerBullets = this.add.group({
   classType: playerBullet,
   maxSize: fireRate+5,
   runChildUpdate: true
 });
+enemyBullets = this.add.group({
+  classType: enemyBullet,
+  maxSize: enemyBulletCount,
+  runChildUpdate: true
+});
 
-  let back = this.add.tileSprite(0, 0, 500, 6000, 'background'); //wieksza dlugosc zeby zrobic scrollowana mape
+   back = this.add.tileSprite(0, 0, 500, 800, 'background'); //zajebiscie sie scrolluje nawet z danym dystansem. mozna zrobic jakis ingame timer zeby zmieniac tlo po czasie
   back.setOrigin(0);
   back.setScrollFactor(1); //nie jestem pewien jak to dziala
   this.cameras.main.setBounds(0,0,500,800);
@@ -114,13 +167,41 @@ bullets = this.add.group({
   //player=this.physics.add.sprite(game.world.centerX, game.world.centerY,'player'); 
   player.setCollideWorldBounds(true);
   //player.setOrigin(0,0);
-  
 
-  /*bullets = this.add.group();
-  bullets.enableBody = true;
-  bullets.physicsBodyType = Phaser.Physics.ARCADE;
 
-  bullets.createMultiple(30, 'playerBullet');*/
+  //strzelanko spacja
+  this.input.keyboard.on('keydown_SPACE', function (event) {
+
+    if(coolDown==0)
+      {
+      var bullet = playerBullets.get();
+
+      if (bullet)
+      {
+          bullet.fire(player.x, player.y);
+
+          coolDown +=fireRate;
+      }
+    }
+
+});
+//zeby byla odmiana to raz na X czasu/plansze/gre gracz moze odpalic bombe ktora rozwali wszystkich wrogow na ekranie ew jakas zmiana broni na szybsza/zadajaca mniej obrazen
+//mozesz pomyslec co chcesz zeby bylo. osoboscie wole to 1sze bo latwiej :V
+this.input.keyboard.on('keydown_Z', function (event) {
+
+  if(bombs>0)
+    {
+    bombs--;
+    //wybuchnij
+  }
+
+});
+
+  /*playerBullets = this.add.group();
+  playerBullets.enableBody = true;
+  playerBullets.physicsBodyType = Phaser.Physics.ARCADE;
+
+  playerBullets.createMultiple(30, 'playerBullet');*/
   
 
   //spaceBar = this.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
@@ -134,11 +215,11 @@ bullets = this.add.group({
 }
 /*function fire() {
 
-  if (game.time.now > nextFire && bullets.countDead() > 0)
+  if (game.time.now > nextFire && playerBullets.countDead() > 0)
   {
       nextFire = game.time.now + fireRate;
 
-      var bullet = bullets.getFirstDead();
+      var bullet = playerBullets.getFirstDead();
 
       bullet.reset(player.x , player.y );
 
@@ -174,11 +255,27 @@ function update()
     player.setVelocityY(0);
     //player.anims.play('front');
   }
+  back.tilePositionY -= 5;
+  levelTimer++;
+ /* if(levelTimer==15)
+  {
+    //chyba nie ma tu gcc a nie bardzo wiem jak zsetowac+statek jest przykrywany;
+    back=this.add.tileSprite(0, 0, 500, 800, 'background2');
+    back.setOrigin(0);
+    back.setScrollFactor(1);
+
+    //back=this.set.tileSprite(0, 0, 500, 800, 'background2');
+    
+  }*/
+
+  
+  //strzelanko myszka potencjalnie do wywalenia
+  /*
   if (game.input.mousePointer.isDown)
     {
       if(coolDown==0)
       {
-      var bullet = bullets.get();
+      var bullet = playerBullets.get();
 
       if (bullet)
       {
@@ -189,7 +286,7 @@ function update()
     }
       //cursor.setPosition(game.input.mousePointer.x,game.input.mousePointer.y);
      // this.physics.moveToObject(player.physics, cursor);
-    }
+    }/*
   
 
 
