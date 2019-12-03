@@ -46,6 +46,8 @@ var config = {
 var game=new Phaser.Game(config);
 
 
+
+
 //  OBIEKTY WYKORZYSTYWANE W GRZE
 //stateczek gracza
 var player;
@@ -89,6 +91,8 @@ function preload()
 
 function create()
 {
+  var gameEnvironment=this;
+
   var animationConfig = {
     key: 'explode',
     frames: this.anims.generateFrameNumbers('explosion'),
@@ -167,11 +171,16 @@ function create()
 
   var EnemyShip= new Phaser.Class({
     Extends: Phaser.Physics.Arcade.Sprite,
-    initialize:
-    function EnemyShip(scene){
+    explosion: {},
+    initialize: function EnemyShip(scene){
       Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'enemyShip');
       scene.physics.world.enable(this);
       this.speed = Phaser.Math.GetSpeed(50, 1);
+      this.explosion=gameEnvironment.add.sprite(0, 0, 'explosion').setScale(0.5,0.5);
+      this.explosion.anims.load('explode');
+      this.explosion.setVisible(false);
+      this.explosion.setActive(false);
+
     },
     createShip: function(){
       let randomX = Math.floor(Math.random()*(500-0+1))+0;// 500 to maksymalna liczba z zakresu-szerokośc okna gry, 0 to minimalna
@@ -182,6 +191,11 @@ function create()
     },
     GetHit: function(){
       this.destroy();
+      this.explosion.setPosition(this.x,this.y);
+      this.explosion.setVisible(true);
+      this.explosion.setActive(true);
+      this.explosion.anims.restart();
+      this.explosion.anims.play('explode');
     }
     ,
     update: function (time, delta)
