@@ -72,11 +72,17 @@ var levelTimer=0;
 
 var bombs=3;
 
+var bottomFloor;// floor object 
+var GAMEOVERtext;
+
 function preload()
 {
   this.load.crossOrigin = 'anonymous';
 
   this.load.image('enemyShip','https://examples.phaser.io/assets/games/invaders/invader.png');
+  this.load.spritesheet('enemyShip2','https://examples.phaser.io/assets/games/invaders/invader32x32x4.png',{ frameWidth: 32, frameHeight: 32 });
+
+  
   //this.load.setBaseURL('https://examples.phaser.io/assets/');// teraz wystarczy pobierać grafiki tak jak poniżej, bez całego linku
   this.load.image('player','https://examples.phaser.io/assets/games/invaders/player.png');
   this.load.image('background','https://examples.phaser.io/assets/games/tanks/dark_grass.png');
@@ -84,6 +90,7 @@ function preload()
   this.load.image('playerBullet','https://examples.phaser.io/assets/games/starstruck/star2.png'); //bo czemu nie
   this.load.image('enemyBullet','https://examples.phaser.io/assets/games/tanks/bullet.png');
   
+
   this.load.spritesheet('explosion','https://examples.phaser.io/assets/games/invaders/explode.png',   //to bedzie nasza animacja wybuchu wroga
     { frameWidth: 128, frameHeight: 128 }
   );
@@ -102,6 +109,8 @@ function create()
     repeat: 0
     
 };
+
+
 
 
   //potencjalnie polaczyc klasy w jedna i dziedziczyc. nie jestem pewien jak to zrobic. w klasie enemyBullet zmniejszyc obrazek
@@ -146,45 +155,57 @@ function create()
       scene.physics.world.enable(this);
         this.setScale(0.5,0.3);//zmniejszenie
         this.setAngle(90);//rotacja
-        this.speed = Phaser.Math.GetSpeed(255, 1);
-        this.timeleft=200;
+
+        this.speed = Phaser.Math.GetSpeed(100, 1);
     },
     fire: function (x, y)
     {
-        this.setPosition(x, y + 50);
+        this.setPosition(x, y + 20);
         this.setActive(true);
         this.setVisible(true);
     },
     update: function (time, delta)
     {
         this.y += this.speed * delta;
-        this.timeleft--;
-        
-        if (this.timeleft <=0)
-        {
-            this.setActive(false);
-            this.setVisible(false);
-            this.timeleft=200;
-        }
     }
   });
 
   var EnemyShip= new Phaser.Class({
     Extends: Phaser.Physics.Arcade.Sprite,
     explosion: {},
+    moving: false,
+    directionRight:true,
     initialize: function EnemyShip(scene){
       Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'enemyShip');
+      
       scene.physics.world.enable(this);
       this.speed = Phaser.Math.GetSpeed(50, 1);
       this.explosion=gameEnvironment.add.sprite(0, 0, 'explosion').setScale(0.5,0.5);
       this.explosion.anims.load('explode');
       this.explosion.setVisible(false);
       this.explosion.setActive(false);
-
+      this.setCollideWorldBounds(true);
     },
     createShip: function(){
-      let randomX = Math.floor(Math.random()*(500-0+1))+0;// 500 to maksymalna liczba z zakresu-szerokośc okna gry, 0 to minimalna
+      let randomX = Math.floor(Math.random()*(450-40+1))+0;// 500 to maksymalna liczba z zakresu-szerokośc okna gry, 0 to minimalna
       
+      let ifmoving=Math.floor(Math.random()*(500-0+1))+0;
+
+      if(ifmoving>50){
+        this.setTexture('enemyShip2',1);
+        this.body.sourceHeight=32;
+        this.body.sourceWidth=32;
+        this.body.halfHeight=16;
+        this.body.halfWidth=16;
+        this.body.height=32;
+        this.body.width=32;
+        this.moving=true;
+        let onright=Math.floor(Math.random()*(500-0+1))+0;
+        if(onright<50){
+          this.directionRight=false;
+        }
+      }
+
       this.setPosition(randomX,0);
       this.setActive(true);
       this.setVisible(true);
@@ -200,6 +221,24 @@ function create()
     ,
     update: function (time, delta)
     {
+      let random= Math.floor(Math.random()*(100-0+1))+0;
+      if(random<1){// mniej niz 5 procent na strzal
+        let enemybullet=enemyBullets.get();
+
+        if(enemybullet!=null)
+        enemybullet.fire(this.x,this.y);
+      }
+
+        if(this.moving){
+          if(this.directionRight)
+            this.x+=this.speed/3*delta;
+          else
+            this.x-=this.speed/3*delta;
+
+            if(this.x<30 || this.x>470)
+            this.directionRight= !this.directionRight;
+        }
+
         this.y += this.speed * delta;
         
     }
@@ -219,7 +258,7 @@ function create()
   });
 
   enemyCount= this.add.group({
-    maxSize:30,
+    maxSize:20,
     classType: EnemyShip,
     runChildUpdate:true
   });
@@ -246,6 +285,19 @@ function create()
   explosionSprite.anims.load('explode');
   explosionSprite.setVisible(false);
   explosionSprite.setActive(false);
+
+  bottomFloor= this.physics.add.sprite(0,848,'');
+  bottomFloor.body.setSize(1000,100);
+
+
+  GAMEOVERtext= this.add.text(40,300,"GAME OVER",
+{
+  font: "65px Arial",
+  fill: "#ffff",
+  align: "center"
+});
+
+GAMEOVERtext.visible=false;
 
   //podmiana obrazka- rozmiar hitboxa pozostaje ten sam (widoczne w debug true)
   //player.setTexture('enemyTank1').setScale(0.5,0.5);
@@ -318,9 +370,25 @@ function GenerateRandomEnemies(){
       enemy.createShip();
   }
 }
+ 
+function EnemybullethitFloor(Floor,EnemyBullet){
+  EnemyBullet.destroy();
+}
+
+function EnemybullethitPlayer(enembybullet,Player){
+  enembybullet.destroy();
+  GAMEOVERtext.visible=true;
+  Player.setActive(false);
+  Player.setVisible(false);
+  Player.destroy();
+}
+
+function EnemyhitFloor(Floor,EnemyBody){// przeciwnik poleciał na sam dół
+  EnemyBody.timeleft=200;
+  EnemyBody.destroy();
+}
 
 function hitEnemyShip(BulletBody, EnemyBody){// to konkretne obiekty, które biorą udział w kolizji
-  console.log("JEEEEB kurwa, kolizja zajebała");
 
   BulletBody.timeleft=200;
   let x = EnemyBody.x;
@@ -330,8 +398,6 @@ function hitEnemyShip(BulletBody, EnemyBody){// to konkretne obiekty, które bio
   BulletBody.Hit();
 
   explodeAt(x,y);
-
- 
 
 }
 
@@ -411,7 +477,9 @@ function update()
   GenerateRandomEnemies()// uruchomienie generowania przeciwników
 
   this.physics.collide(playerBullets,enemyCount,hitEnemyShip);// ustawienien kolizji obiektów z listy playerbullets i enemyCount- to wywołuje hitEnemyShip
-  
+  this.physics.collide(bottomFloor,enemyCount,EnemyhitFloor);
+  this.physics.collide(bottomFloor,enemyBullets,EnemybullethitFloor);
+  this.physics.collide(enemyBullets,player,EnemybullethitPlayer);
   //strzelanko myszka potencjalnie do wywalenia
   /*
   if (game.input.mousePointer.isDown)
