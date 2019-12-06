@@ -51,6 +51,9 @@ var game=new Phaser.Game(config);
 //  OBIEKTY WYKORZYSTYWANE W GRZE
 //stateczek gracza
 var player;
+var playerLaserCount=3;// czy gracz posiada bombe
+var IsAlive=true;
+
 //tablica przechowujaca pociski gracza
 var playerBullets;
 //przyciski strzalek
@@ -108,9 +111,8 @@ function create()
     yoyo: false,
     hideOnComplete: true,
     repeat: 0
-    
 };
-
+ 
 
 
 
@@ -186,7 +188,7 @@ function create()
       this.explosion.anims.load('explode');
       this.explosion.setVisible(false);
       this.explosion.setActive(false);
-      this.setCollideWorldBounds(true);
+      
     },
     createShip: function(){
       let randomX = Math.floor(Math.random()*(450-40+1))+0;// 500 to maksymalna liczba z zakresu-szerokośc okna gry, 0 to minimalna
@@ -276,11 +278,7 @@ function create()
   this.physics.world.setBounds(0,0,500,800);
   player=this.physics.add.sprite(250,500,'player');
    cursor = this.add.image(0, 0, 'player').setVisible(false);
-  //game.physics.enable(player, Phaser.Physics.ARCADE);
-  //jak ogarnie sie lepiej scrollowanie niz przez powiekszenie sztuczne swiata
-  //player=this.physics.add.sprite(game.world.centerX, game.world.centerY,'player'); 
   player.setCollideWorldBounds(true);
-  //player.setOrigin(0,0);
 
   //potencjalnie zrobic liste eksplozji i zmieniac ich polozenie
   animExplosion = this.anims.create(animationConfig);
@@ -289,8 +287,13 @@ function create()
   explosionSprite.setVisible(false);
   explosionSprite.setActive(false);
 
-  bottomFloor= this.physics.add.sprite(0,848,'');
-  bottomFloor.body.setSize(1000,100);
+
+
+  // bottomFloor= this.physics.add.sprite(0,700,''); //848- tyle ma być żeby był na samym dole
+  bottomFloor= this.add.rectangle(0,840,1000,10,0xee300);
+  this.physics.add.existing(bottomFloor);
+  bottomFloor.body.immovable=true;
+
 
 
   GAMEOVERtext= this.add.text(40,300,"GAME OVER",
@@ -306,11 +309,12 @@ GAMEOVERtext.visible=false;
   //player.setTexture('enemyTank1').setScale(0.5,0.5);
   //testowanie eksplozji na sztywno
   this.input.keyboard.on('keydown_B', function (event) {
-    explosionSprite.setVisible(true);
-    explosionSprite.setActive(true);
-    explosionSprite.anims.restart();
-    explosionSprite.anims.play('explode');
-    explodeAt(100,100);
+
+    if(playerLaserCount!=0 && IsAlive==true){
+      bottomFloor.body.velocity.y=-400;
+      playerLaserCount--;
+    }
+    
     //explosionSprite.setActive(false);
     //explosionSprite.setVisible(false);
   
@@ -321,7 +325,7 @@ GAMEOVERtext.visible=false;
   //strzelanko spacja
   this.input.keyboard.on('keydown_SPACE', function (event) {
 
-    if(coolDown==0)
+    if(coolDown==0 && IsAlive==true)
       {
       var bullet = playerBullets.get();
 
@@ -332,17 +336,6 @@ GAMEOVERtext.visible=false;
           coolDown +=fireRate;
       }
     }
-
-});
-//zeby byla odmiana to raz na X czasu/plansze/gre gracz moze odpalic bombe ktora rozwali wszystkich wrogow na ekranie ew jakas zmiana broni na szybsza/zadajaca mniej obrazen
-//mozesz pomyslec co chcesz zeby bylo. osoboscie wole to 1sze bo latwiej :V
-this.input.keyboard.on('keydown_Z', function (event) {
-
-  if(bombs>0)
-    {
-    bombs--;
-    //wybuchnij
-  }
 
 });
 
@@ -375,11 +368,13 @@ function EnemybullethitPlayer(enembybullet,Player){
   explosionSprite.anims.restart();
   explosionSprite.anims.play('explode');
   explodeAt(Player.body.x,Player.body.y);
+  IsAlive=false;
+
 }
 
 function EnemyhitFloor(Floor,EnemyBody){// przeciwnik poleciał na sam dół
   EnemyBody.timeleft=200;
-  EnemyBody.destroy();
+  EnemyBody.GetHit();
 }
 
 function hitEnemyShip(BulletBody, EnemyBody){// to konkretne obiekty, które biorą udział w kolizji
@@ -407,20 +402,6 @@ function bigExplosion()
   explosionSprite.y=player.y;
   explosionSprite.setScale(5,5);
 }
-/*function fire() {
-
-  if (game.time.now > nextFire && playerBullets.countDead() > 0)
-  {
-      nextFire = game.time.now + fireRate;
-
-      var bullet = playerBullets.getFirstDead();
-
-      bullet.reset(player.x , player.y );
-
-      //game.physics.arcade.moveToPointer(bullet, 300);
-  }
-
-}*/
 
 function update()
 {
@@ -430,15 +411,12 @@ function update()
   }
   if (cursors.left.isDown) {
     player.setVelocityX(-150);
-    //player.anims.play('left', true);
   }
   else if (cursors.right.isDown) {
     player.setVelocityX(150);
-   // player.anims.play('right', true);
   }
   else {
     player.setVelocityX(0);
-    //player.anims.play('front');
   }
   if (cursors.up.isDown){
     player.setVelocityY(-150);
@@ -448,7 +426,6 @@ function update()
   }
   else {
     player.setVelocityY(0);
-    //player.anims.play('front');
   }
   back.tilePositionY -= 5;
   levelTimer++;
@@ -458,9 +435,7 @@ function update()
   {
     //dzialajaca zmiana tla z zielonej na brazowa po na 15 klatce gry. mozna jakis inny waruneczek dac albo gdzies indziej.
     back.setTexture('background2');
-    //back.setOrigin(0);
-    
-    
+   
   }
   if(explosionSprite.anims.getProgress()==1)
   {
@@ -470,34 +445,14 @@ function update()
 
   GenerateRandomEnemies()// uruchomienie generowania przeciwników
 
+  if(bottomFloor.body.velocity.y!=0 && bottomFloor.y<0){// for reseting laser
+    bottomFloor.y=880;
+    bottomFloor.body.velocity.y=0;
+  }
+
   this.physics.collide(playerBullets,enemyCount,hitEnemyShip);// ustawienien kolizji obiektów z listy playerbullets i enemyCount- to wywołuje hitEnemyShip
   this.physics.collide(bottomFloor,enemyCount,EnemyhitFloor);
   this.physics.collide(bottomFloor,enemyBullets,EnemybullethitFloor);
   this.physics.collide(enemyBullets,player,EnemybullethitPlayer);
-  //strzelanko myszka potencjalnie do wywalenia
-  /*
-  if (game.input.mousePointer.isDown)
-    {
-      if(coolDown==0)
-      {
-      var bullet = playerBullets.get();
-
-      if (bullet)
-      {
-          bullet.fire(player.x, player.y);
-
-          coolDown +=fireRate;
-      }
-    }
-      //cursor.setPosition(game.input.mousePointer.x,game.input.mousePointer.y);
-     // this.physics.moveToObject(player.physics, cursor);
-    }/*
   
-
-
-
-
-  /*if (cursors.up.isDown && (player.body.touching.down || player.body.onFloor())) {
-    player.setVelocityY(-250);
-  }*/
 }   
