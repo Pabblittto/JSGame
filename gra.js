@@ -58,6 +58,7 @@ var cursors;
 //dziala przeciwnie- niski firerate=szybkie strzelanie, wysoki=wolne
 var fireRate = 10; 
 var coolDown = 0;
+var enemyAmount=30;
 //tablica przechowujaca wrogow na ekranie (NOT YET IMPLEMENTED)
 var enemyCount;
 //tablica przechowujaca pociski wroga
@@ -88,7 +89,7 @@ function preload()
   this.load.image('background','https://examples.phaser.io/assets/games/tanks/dark_grass.png');
   this.load.image('background2','https://examples.phaser.io/assets/games/tanks/earth.png');
   this.load.image('playerBullet','https://examples.phaser.io/assets/games/starstruck/star2.png'); //bo czemu nie
-  this.load.image('enemyBullet','https://examples.phaser.io/assets/games/tanks/bullet.png');
+  this.load.image('enemyBullet','https://examples.phaser.io/assets/games/invaders/enemy-bullet.png');
   
 
   this.load.spritesheet('explosion','https://examples.phaser.io/assets/games/invaders/explode.png',   //to bedzie nasza animacja wybuchu wroga
@@ -153,7 +154,7 @@ function create()
     {
       Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'enemyBullet');
       scene.physics.world.enable(this);
-        this.setScale(0.5,0.3);//zmniejszenie
+        //this.setScale(0.5,0.3);//zmniejszenie
         this.setAngle(90);//rotacja
 
         this.speed = Phaser.Math.GetSpeed(100, 1);
@@ -170,6 +171,8 @@ function create()
     }
   });
 
+  var normalships=enemyAmount/2;
+
   var EnemyShip= new Phaser.Class({
     Extends: Phaser.Physics.Arcade.Sprite,
     explosion: {},
@@ -177,7 +180,6 @@ function create()
     directionRight:true,
     initialize: function EnemyShip(scene){
       Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'enemyShip');
-      
       scene.physics.world.enable(this);
       this.speed = Phaser.Math.GetSpeed(50, 1);
       this.explosion=gameEnvironment.add.sprite(0, 0, 'explosion').setScale(0.5,0.5);
@@ -188,10 +190,10 @@ function create()
     },
     createShip: function(){
       let randomX = Math.floor(Math.random()*(450-40+1))+0;// 500 to maksymalna liczba z zakresu-szerokośc okna gry, 0 to minimalna
-      
-      let ifmoving=Math.floor(Math.random()*(500-0+1))+0;
 
-      if(ifmoving>50){
+      let random = Math.floor(Math.random()*(100-0+1))+0;
+      if(normalships!=0 && random<50) {
+        normalships--;
         this.setTexture('enemyShip2',1);
         this.body.sourceHeight=32;
         this.body.sourceWidth=32;
@@ -211,6 +213,7 @@ function create()
       this.setVisible(true);
     },
     GetHit: function(){
+      normalships++;
       this.destroy();
       this.explosion.setPosition(this.x,this.y);
       this.explosion.setVisible(true);
@@ -258,7 +261,7 @@ function create()
   });
 
   enemyCount= this.add.group({
-    maxSize:20,
+    maxSize:enemyAmount,
     classType: EnemyShip,
     runChildUpdate:true
   });
@@ -343,21 +346,6 @@ this.input.keyboard.on('keydown_Z', function (event) {
 
 });
 
-
-
-  /*playerBullets = this.add.group();
-  playerBullets.enableBody = true;
-  playerBullets.physicsBodyType = Phaser.Physics.ARCADE;
-
-  playerBullets.createMultiple(30, 'playerBullet');*/
-  
-
-  //spaceBar = this.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
-  //spaceBar.onDown.add(shoot, this); 
-  //this.cameras.main.startFollow(player);
- 
-
-
   cursors = this.input.keyboard.createCursorKeys();
 
 }
@@ -380,7 +368,13 @@ function EnemybullethitPlayer(enembybullet,Player){
   GAMEOVERtext.visible=true;
   Player.setActive(false);
   Player.setVisible(false);
-  Player.destroy();
+  Player.body.moves=false;
+
+  explosionSprite.setVisible(true);
+  explosionSprite.setActive(true);
+  explosionSprite.anims.restart();
+  explosionSprite.anims.play('explode');
+  explodeAt(Player.body.x,Player.body.y);
 }
 
 function EnemyhitFloor(Floor,EnemyBody){// przeciwnik poleciał na sam dół
